@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -84,6 +85,55 @@ fun GerenciarCompras() {
         LazyColumn {
             items(listaItens) { item ->
                 Text(text = "${item.nome} - Qtd: ${item.quantidades} - Prioridade: ${item.prioridade}")
+                Button(onClick = {
+
+                    CoroutineScope(Dispatchers.IO).launch {
+
+                        itemCompraDAO.excluirItemCompra(item)
+
+                        listaItens = itemCompraDAO.buscarTodosItens()
+
+                        (context as? Activity)?.runOnUiThread{
+                            Toast.makeText(context, "item removido", Toast.LENGTH_SHORT).show()
+                        }
+
+                    }
+
+                }) {
+                    Text(text = "Apagar")
+                }
+
+                var isEditing by remember { mutableStateOf(false) }
+                var editedPrioridade by remember { mutableStateOf(item.prioridade.toString()) }
+                Button(onClick = {
+                    isEditing = !isEditing
+                }) {
+                    Text("Editar")
+                }
+
+                if(isEditing){
+                    TextField(
+                        value = editedPrioridade,
+                        onValueChange = { editedPrioridade = it },
+                        label = { Text("Prioridade") }
+                    )
+                    Button(onClick = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val updatedItem = item.copy(prioridade = editedPrioridade.toInt())
+
+                            itemCompraDAO.atualizarItemCompra(updatedItem)
+
+                            listaItens = itemCompraDAO.buscarTodosItens()
+
+                            (context as? Activity)?.runOnUiThread {
+                                Toast.makeText(context, "item atualizado", Toast.LENGTH_SHORT).show()
+                            }
+                            isEditing = false
+
+                        }
+                    }) { Text(text = "Concluir") }
+                }
+
             }
         }
     }
